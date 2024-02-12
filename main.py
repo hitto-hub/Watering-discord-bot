@@ -12,14 +12,19 @@ import json
 dotenv.load_dotenv()
 token = str(os.getenv("TOKEN"))
 # gasurl
-gasurl = str(os.getenv("GASURL"))
-url = gasurl
+url = str(os.getenv("API_URL"))
 
 # channelid
-channelid = str(os.getenv("CHANNELID"))
+# val
+valchannelid = str(os.getenv("VAL_CHANNEL_ID"))
+# notice
+noticechannelid = str(os.getenv("NOTICE_CHANNEL_ID"))
 
 # Message リスト
-Message = []
+Message_val = []
+
+# notice id
+noticeid = len(json.loads(requests.get(url + "/notice").text)["data"])
 
 # Botの大元となるオブジェクトを生成する
 bot = discord.Bot(
@@ -27,7 +32,7 @@ bot = discord.Bot(
         activity=discord.Game("Discord Bot入門"),  # "〇〇をプレイ中"の"〇〇"を設定,
 )
 def concatenate_messages():
-    return ''.join(Message) if Message else "No messages available."
+    return ''.join(Message_val) if Message_val else "No messages available."
 
 
 # 起動時に自動的に動くメソッド
@@ -36,10 +41,10 @@ async def on_ready():
     # 起動すると、実行したターミナルに"Hello!"と表示される
     print("Hello!")
     for channel in bot.get_all_channels():
-        if int(channel.id) == int(channelid):
+        if int(channel.id) == int(valchannelid):
             now = time.localtime()
-            Message.append(time.strftime("%Y/%m/%d %H:%M:%S", now) + ":起動しました\n")
-            await channel.send(f"```{Message[0]}```")
+            Message_val.append(time.strftime("%Y/%m/%d %H:%M:%S", now) + ":起動しました\n")
+            await channel.send(f"```{Message_val[0]}```")
 
 # pingコマンドを実装
 @bot.command(name="ping", description="pingを返します")
@@ -56,16 +61,18 @@ async def edit(ctx: discord.ApplicationContext):
 # 10秒ごとにchannelidにメッセージを送信
 # ToDo: 値の取得、表示方法を改善
 @tasks.loop(seconds=10)
-async def log_get():
-    # 完全に起動するまで待つ
+async def get_val():
+    # 完全に起動するまで待つ <- 要改善
     await bot.wait_until_ready()
     # リクエストを送信
-    response = requests.get(url)
+    response = requests.get(url + "/val")
+    print("-----valはじめ-----")
     print(response.text)
     print(response.status_code)
+    print("-----valおわり-----")
     # channel指定 要改善
     for channel in bot.get_all_channels():
-        if int(channel.id) == int(channelid):
+        if int(channel.id) == int(valchannelid):
             # メッセージ指定 要改善
             async for message in channel.history(limit=1):
                 # 自分のメッセージのみを編集
@@ -75,15 +82,44 @@ async def log_get():
                     for entry in data["data"]:
                         mes = f"{entry['timestamp']} : {entry['val']}\n"
                         # Message[id]が存在しない場合、Message[id]に格納
-                        if len(Message) <= int(entry['id']):
-                            Message.append(mes)
+                        if len(Message_val) <= int(entry['id']):
+                            Message_val.append(mes)
                         # Message[id]が存在する場合、Message[id]を編集 <-いらないかも
                         else:
-                            Message[int(entry['id'])] = mes
-                    print([x for x in Message])
+                            Message_val[int(entry['id'])] = mes
                     await message.edit(content=f"```{concatenate_messages()}```")
 
-log_get.start()
+@tasks.loop(seconds=10)
+async def get_notice():
+    global noticeid
+    await bot.wait_until_ready()
+    response = requests.get(url + "/notice")
+    print("-----noticeはじめ-----")
+    print(response.text)
+    print(response.status_code)
+    print("-----noticeおわり-----")
+    data = json.loads(response.text)
+    if noticeid == len(data["data"]):
+        print("ifの世界線")
+        return
+    print("elseの世界線")
+    noticeid = len(data["data"])
+    # mes = f"{data['data'][-1]['timestamp']} : {data['data'][-1]['notice']}\n"
+    # # noticechannelidにメッセージを送信
+    # for channel in bot.get_all_channels():
+    #     if int(channel.id) == int(noticechannelid):
+    #         await channel.send(f"```{mes}```")
+    if data["data"][-1]["notice"] == 1:
+        for channel in bot.get_all_channels():
+            if int(channel.id) == int(noticechannelid):
+                await channel.send(f"```{data['data'][-1]['timestamp']} : 水やり開始```")
+    else:
+        for channel in bot.get_all_channels():
+            if int(channel.id) == int(noticechannelid):
+                await channel.send(f"```{data['data'][-1]['timestamp']} : 水やり停止```")
+
+get_val.start()
+get_notice.start()
 
 # Botを起動
 bot.run(token)
