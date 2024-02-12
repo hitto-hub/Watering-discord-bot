@@ -1,0 +1,19 @@
+{
+  "data": [
+    {
+      "id": 1,
+      "timestamp": "Fri, 09 Feb 2024 04:09:37 GMT",
+      "val": 334
+    },
+    {
+      "id": 2,
+      "timestamp": "Fri, 09 Feb 2024 04:12:46 GMT",
+      "val": 334
+    },
+    {
+      "id": 3,
+      "timestamp": "Fri, 09 Feb 2024 08:08:38 GMT",
+      "val": 31111
+    }
+  ]
+}
