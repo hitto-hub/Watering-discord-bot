@@ -58,6 +58,12 @@ async def edit(ctx: discord.ApplicationContext):
         if message.author == bot.user:
             await message.edit(content="編集しました")
 
+# /wateringコマンドを実装
+@bot.command(name="watering", description="水やりを開始します")
+async def watering(ctx: discord.ApplicationContext):
+    response = requests.post(url + "/flag", data={"flag": 1})
+    await ctx.respond(f"水やりを開始しました")
+
 # 10秒ごとにchannelidにメッセージを送信
 # ToDo: 値の取得、表示方法を改善
 @tasks.loop(seconds=10)
