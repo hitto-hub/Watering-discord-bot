@@ -29,7 +29,7 @@ noticeid = len(json.loads(requests.get(url + "/notice").text)["data"])
 # Botの大元となるオブジェクトを生成する
 bot = discord.Bot(
         intents=discord.Intents.all(),  # 全てのインテンツを利用できるようにする
-        activity=discord.Game("Discord Bot入門"),  # "〇〇をプレイ中"の"〇〇"を設定,
+        activity=discord.Game("💧"),  # "〇〇をプレイ中"の"〇〇"を設定,
 )
 
 # 起動時に自動的に動くメソッド
@@ -91,11 +91,6 @@ async def get_notice():
         return
     print("elseの世界線")
     noticeid = len(data["data"])
-    # mes = f"{data['data'][-1]['timestamp']} : {data['data'][-1]['notice']}\n"
-    # # noticechannelidにメッセージを送信
-    # for channel in bot.get_all_channels():
-    #     if int(channel.id) == int(noticechannelid):
-    #         await channel.send(f"```{mes}```")
     if data["data"][-1]["notice"] == 1:
         for channel in bot.get_all_channels():
             if int(channel.id) == int(noticechannelid):
