@@ -20,11 +20,8 @@ valchannelid = str(os.getenv("VAL_CHANNEL_ID"))
 # notice
 noticechannelid = str(os.getenv("NOTICE_CHANNEL_ID"))
 
-# Message
-num_val = int(json.loads(requests.get(url + "/val").text)["num_results"])
-
-# notice id
-num_notice = int(json.loads(requests.get(url + "/notice").text)["num_results"])
+num_val = 0
+num_notice = 0
 
 # Botの大元となるオブジェクトを生成する
 bot = discord.Bot(
@@ -35,11 +32,25 @@ bot = discord.Bot(
 # 起動時に自動的に動くメソッド
 @bot.event
 async def on_ready():
+    global num_val
+    global num_notice
     # 起動すると、実行したターミナルに"Hello!"と表示される
     print("Hello!")
     for channel in bot.get_all_channels():
         if int(channel.id) == int(valchannelid):
             await channel.send(time.strftime("%Y/%m/%d %H:%M:%S", time.localtime()) + ":起動しました\n")
+    # Message
+    # notice id
+    try:
+        num_val = int(json.loads(requests.get(url + "/val").text)["num_results"])
+        num_notice = int(json.loads(requests.get(url + "/notice").text)["num_results"])
+    except:
+        errmes = "Error: メッセージの取得に失敗しました"
+        # メッセージの取得に失敗した場合、エラーメッセージを送信
+        for channel in bot.get_all_channels():
+            if int(channel.id) == int(valchannelid):
+                await channel.send(errmes)
+
 
 # pingコマンドを実装
 @bot.command(name="ping", description="pingを返します")
@@ -60,11 +71,19 @@ async def get_val():
     # 完全に起動するまで待つ <- 要改善
     await bot.wait_until_ready()
     # リクエストを送信
-    response = requests.get(url + "/val")
+    try:
+        response = requests.get(url + "/val")
+        data = json.loads(response.text)
+    except:
+        errmes = "Error: メッセージの取得に失敗しました"
+        # メッセージの取得に失敗した場合、エラーメッセージを送信
+        for channel in bot.get_all_channels():
+            if int(channel.id) == int(valchannelid):
+                await channel.send(errmes)
+        return
     # channel指定 要改善
     for channel in bot.get_all_channels():
         if int(channel.id) == int(valchannelid):
-            data = json.loads(response.text)
             for entry in data["data"]:
                 # Message[id]が存在しない場合、Message[id]に格納
                 if num_val < int(entry['id']):
@@ -76,10 +95,17 @@ async def get_val():
 async def get_notice():
     global num_notice
     await bot.wait_until_ready()
-    response = requests.get(url + "/notice")
+    try:
+        response = requests.get(url + "/notice")
+        data = json.loads(response.text)
+    except:
+        errmes = "Error: メッセージの取得に失敗しました"
+        for channel in bot.get_all_channels():
+            if int(channel.id) == int(noticechannelid):
+                await channel.send(errmes)
+        return
     for channel in bot.get_all_channels():
         if int(channel.id) == int(noticechannelid):
-            data = json.loads(response.text)
             if num_notice == len(data["data"]):
                 return
             else:
