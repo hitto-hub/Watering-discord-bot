@@ -21,10 +21,10 @@ valchannelid = str(os.getenv("VAL_CHANNEL_ID"))
 noticechannelid = str(os.getenv("NOTICE_CHANNEL_ID"))
 
 # Message
-Message_val = int(json.loads(requests.get(url + "/val").text)["num_results"])
+num_val = int(json.loads(requests.get(url + "/val").text)["num_results"])
 
 # notice id
-noticeid = len(json.loads(requests.get(url + "/notice").text)["data"])
+num_notice = int(json.loads(requests.get(url + "/notice").text)["num_results"])
 
 # Botの大元となるオブジェクトを生成する
 bot = discord.Bot(
@@ -56,7 +56,7 @@ async def watering(ctx: discord.ApplicationContext):
 # ToDo: 値の取得、表示方法を改善
 @tasks.loop(seconds=10)
 async def get_val():
-    global Message_val
+    global num_val
     # 完全に起動するまで待つ <- 要改善
     await bot.wait_until_ready()
     # リクエストを送信
@@ -64,41 +64,30 @@ async def get_val():
     # channel指定 要改善
     for channel in bot.get_all_channels():
         if int(channel.id) == int(valchannelid):
-            # メッセージ指定 要改善
-            async for message in channel.history(limit=1):
-                # 自分のメッセージのみを編集
-                if message.author == bot.user:
-                    data = json.loads(response.text)
-                    for entry in data["data"]:
-                        # Message[id]が存在しない場合、Message[id]に格納
-                        if Message_val < int(entry['id']):
-                            Message_val = int(entry['id'])
-                            mes = f"{entry['timestamp']} : {entry['val']}\n"
-                            await channel.send(mes)
+            data = json.loads(response.text)
+            for entry in data["data"]:
+                # Message[id]が存在しない場合、Message[id]に格納
+                if num_val < int(entry['id']):
+                    num_val = int(entry['id'])
+                    mes = f"{entry['timestamp']} : {entry['val']}\n"
+                    await channel.send(mes)
 
 @tasks.loop(seconds=10)
 async def get_notice():
-    global noticeid
+    global num_notice
     await bot.wait_until_ready()
     response = requests.get(url + "/notice")
-    print("-----noticeはじめ-----")
-    print(response.text)
-    print(response.status_code)
-    print("-----noticeおわり-----")
-    data = json.loads(response.text)
-    if noticeid == len(data["data"]):
-        print("ifの世界線")
-        return
-    print("elseの世界線")
-    noticeid = len(data["data"])
-    if data["data"][-1]["notice"] == 1:
-        for channel in bot.get_all_channels():
-            if int(channel.id) == int(noticechannelid):
-                await channel.send(f"```{data['data'][-1]['timestamp']} : 水やり開始```")
-    else:
-        for channel in bot.get_all_channels():
-            if int(channel.id) == int(noticechannelid):
-                await channel.send(f"```{data['data'][-1]['timestamp']} : 水やり停止```")
+    for channel in bot.get_all_channels():
+        if int(channel.id) == int(noticechannelid):
+            data = json.loads(response.text)
+            if num_notice == len(data["data"]):
+                return
+            else:
+                num_notice += 1
+                if data["data"][num_notice - 1]["notice"] == 1:
+                    await channel.send(f"```{data['data'][-1]['timestamp']} : 水やり開始```")
+                else:
+                    await channel.send(f"```{data['data'][-1]['timestamp']} : 水やり停止```")
 
 get_val.start()
 get_notice.start()
