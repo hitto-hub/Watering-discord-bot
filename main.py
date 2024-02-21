@@ -111,9 +111,9 @@ async def get_notice():
             else:
                 num_notice += 1
                 if data["data"][num_notice - 1]["notice"] == 1:
-                    await channel.send(f"```{data['data'][-1]['timestamp']} : 水やり開始```")
+                    await channel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やり開始```")
                 else:
-                    await channel.send(f"```{data['data'][-1]['timestamp']} : 水やり停止```")
+                    await channel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やり停止```")
 
 get_val.start()
 get_notice.start()
