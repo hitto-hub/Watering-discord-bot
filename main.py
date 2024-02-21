@@ -112,12 +112,10 @@ async def get_notice():
                 num_notice += 1
                 if data["data"][num_notice - 1]["notice"] == 1:
                     await channel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やり開始```")
-                elif data["data"][num_notice - 1]["notice"] == 2:
-                    await channel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やり中断```")
                 elif data["data"][num_notice - 1]["notice"] == 0:
-                    await channel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やり停止```")
+                    await channel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やり終了```")
                 else:
-                    await channel.send(f"```{data['data'][num_notice - 1]['timestamp']} : エラーが発生しました。```")
+                    await channel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やりtimeout```")
 
 get_val.start()
 get_notice.start()
