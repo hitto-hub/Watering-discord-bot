@@ -14,7 +14,9 @@ import json
 # アクセストークンを設定
 dotenv.load_dotenv()
 token = str(os.getenv("TOKEN"))
-# gasurl
+# url
+# httpsではpost出来ない例あり
+# 関連)https://community.cloudflare.com/t/cloudflared-tunnel-receives-post-request-as-get/581874
 url = str(os.getenv("API_URL"))
 
 # channelid
@@ -54,23 +56,20 @@ async def on_ready():
             if int(channel.id) == int(valchannelid):
                 await channel.send(errmes)
 
-
 # pingコマンドを実装
 @bot.command(name="ping", description="pingを返します")
 async def ping(ctx: discord.ApplicationContext):
     await ctx.respond(f"pong to {ctx.author.mention}")
 
-# 未実装
 # /wateringコマンドを実装
-# @bot.command(name="watering", description="水やりを開始します")
-# async def watering(ctx: discord.ApplicationContext):
-#     data = {"flag": 1}
-#     flag_url = url + "/flag"
-#     # requsetsを使わずに、postを送信する
-#     response = requests.post(flag_url, json=data)
-#     print(response.status_code)
-#     print(response.text)
-#     await ctx.respond(f"水やり指示を出しました")
+@bot.command(name="watering", description="水やりを開始します")
+async def watering(ctx: discord.ApplicationContext):
+    data = {"flag": 1}
+    flag_url = url + "/flag"
+    response = requests.post(flag_url, json=data)
+    # print(response.status_code)
+    # print(response.text)
+    await ctx.respond(f"水やり指示を出しました")
 
 # 10秒ごとにchannelidにメッセージを送信
 # ToDo: 値の取得、表示方法を改善
