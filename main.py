@@ -7,6 +7,9 @@ import requests
 from discord.ext import commands,tasks
 import time
 import json
+# from requests.packages.urllib3.exceptions import InsecureRequestWarning
+
+# requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 # アクセストークンを設定
 dotenv.load_dotenv()
@@ -57,11 +60,17 @@ async def on_ready():
 async def ping(ctx: discord.ApplicationContext):
     await ctx.respond(f"pong to {ctx.author.mention}")
 
+# 未実装
 # /wateringコマンドを実装
-@bot.command(name="watering", description="水やりを開始します")
-async def watering(ctx: discord.ApplicationContext):
-    response = requests.post(url + "/flag", data={"flag": 1})
-    await ctx.respond(f"水やりを開始しました")
+# @bot.command(name="watering", description="水やりを開始します")
+# async def watering(ctx: discord.ApplicationContext):
+#     data = {"flag": 1}
+#     flag_url = url + "/flag"
+#     # requsetsを使わずに、postを送信する
+#     response = requests.post(flag_url, json=data)
+#     print(response.status_code)
+#     print(response.text)
+#     await ctx.respond(f"水やり指示を出しました")
 
 # 10秒ごとにchannelidにメッセージを送信
 # ToDo: 値の取得、表示方法を改善
