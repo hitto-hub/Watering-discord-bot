@@ -102,11 +102,11 @@ async def get_val():
                     num_val = int(entry['id'])
                     mes = f"{entry['timestamp']} : {entry['val']}\n"
                     await channel.send(mes)
-            print(num_val, len(data["data"]))
+            # print(num_val, len(data["data"]))
             if num_val > len(data["data"]):
                 num_val = int(json.loads(requests.get(url + "/val").text)["num_results"])
                 print("Error: get_val, valがリセットされました")
-                print(num_val, len(data["data"]))
+                # print(num_val, len(data["data"]))
                 return
 
 @tasks.loop(seconds=10)
