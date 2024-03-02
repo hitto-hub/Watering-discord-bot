@@ -66,7 +66,11 @@ async def ping(ctx: discord.ApplicationContext):
 async def watering(ctx: discord.ApplicationContext):
     data = {"flag": 1}
     flag_url = url + "/flag"
-    response = requests.post(flag_url, json=data)
+    try:
+        response = requests.post(flag_url, json=data)
+    except:
+        await ctx.respond(f"Error: 水やり指示の送信に失敗しました")
+        return
     # print(response.status_code)
     # print(response.text)
     await ctx.respond(f"水やり指示を出しました")
@@ -98,6 +102,12 @@ async def get_val():
                     num_val = int(entry['id'])
                     mes = f"{entry['timestamp']} : {entry['val']}\n"
                     await channel.send(mes)
+            print(num_val, len(data["data"]))
+            if num_val > len(data["data"]):
+                num_val = int(json.loads(requests.get(url + "/val").text)["num_results"])
+                print("Error: get_val, valがリセットされました")
+                print(num_val, len(data["data"]))
+                return
 
 @tasks.loop(seconds=10)
 async def get_notice():
@@ -118,12 +128,16 @@ async def get_notice():
                 return
             else:
                 num_notice += 1
-                if data["data"][num_notice - 1]["notice"] == 1:
-                    await channel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やり開始```")
-                elif data["data"][num_notice - 1]["notice"] == 0:
-                    await channel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やり終了```")
-                else:
-                    await channel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やりtimeout```")
+                try:
+                    if data["data"][num_notice - 1]["notice"] == 1:
+                        await channel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やり開始```")
+                    elif data["data"][num_notice - 1]["notice"] == 0:
+                        await channel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やり終了```")
+                    else:
+                        await channel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やりtimeout```")
+                except:
+                    print("Error: get_notice, noticeがリセットされました")
+                    num_notice = len(data["data"])
 
 get_val.start()
 get_notice.start()
