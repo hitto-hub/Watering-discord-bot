@@ -27,6 +27,7 @@ noticechannelid = str(os.getenv("NOTICE_CHANNEL_ID"))
 
 num_val = 0
 num_notice = 0
+watering_time = []
 
 # Botの大元となるオブジェクトを生成する
 bot = discord.Bot(
@@ -74,6 +75,31 @@ async def watering(ctx: discord.ApplicationContext):
     # print(response.status_code)
     # print(response.text)
     await ctx.respond(f"水やり指示を出しました")
+
+@bot.command(name="wateringregular", description="水やりを予約関連")
+async def wateringregular(ctx: discord.ApplicationContext,
+                            subcommand: discord.Option(str, "subcommandを入力してください", name="subcommand", choices=["add", "delete", "list"]),
+                            settime: discord.Option(str, "時間\"HH:MM\"を入力してください(省略可)", name="time", required=False, default="all"),
+                            weekday: discord.Option(str, "曜日を入力してください(省略可)", name="weekday", required=False, default="all", choices=["mon", "tue", "wed", "thu", "fri", "sat", "sun", "all"]),
+                            ):
+    # addの場合
+    if subcommand == "add":
+        watering_time.append(settime + " " + weekday)
+        await ctx.respond(f"水やりを予約しました\n{watering_time}")
+    # deleteの場合
+    elif subcommand == "delete":
+        if settime == "all" and weekday == "all":
+            watering_time.clear()
+            await ctx.respond(f"水やり予約を全て削除しました")
+        else:
+            if settime + " " + weekday in watering_time:
+                watering_time.remove(settime + " " + weekday)
+                await ctx.respond(f"水やり予約を削除しました\n{watering_time}")
+            else:
+                await ctx.respond(f"水やり予約が見つかりませんでした")
+    # listの場合
+    elif subcommand == "list":
+        await ctx.respond(f"水やり予約リスト\n{watering_time}")
 
 # 10秒ごとにchannelidにメッセージを送信
 # ToDo: 値の取得、表示方法を改善
@@ -139,8 +165,37 @@ async def get_notice():
                     print("Error: get_notice, noticeがリセットされました")
                     num_notice = len(data["data"])
 
+@tasks.loop(seconds=55)
+# 指定時間に水やり指示を送信
+async def post_flag():
+    # @bot.event on_readyが呼ばれるまで待つ
+    await bot.wait_until_ready()
+    # 時間を取得
+    now = time.strftime("%H:%M", time.localtime())
+    # 曜日を取得
+    weekday = time.strftime("%a", time.localtime()).lower()
+    print(now, weekday)
+    # 水やり予約がある場合
+    if len(watering_time) > 0:
+        for watering_time_slot in watering_time:
+            if watering_time_slot.split(" ")[0] == now and (watering_time_slot.split(" ")[1] == weekday or watering_time_slot.split(" ")[1] == "all"):
+                data = {"flag": 1}
+                flag_url = url + "/flag"
+                try:
+                    response = requests.post(flag_url, json=data)
+                except:
+                    for channel in bot.get_all_channels():
+                        if int(channel.id) == int(valchannelid):
+                            await channel.send(f"Error: 水やり指示の送信に失敗しました")
+                    return
+                for channel in bot.get_all_channels():
+                    if int(channel.id) == int(valchannelid):
+                        await channel.send(f"水やり指示を出しました")
+                return
+
 get_val.start()
 get_notice.start()
+post_flag.start()
 
 # Botを起動
 bot.run(token)
