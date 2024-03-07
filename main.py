@@ -27,7 +27,7 @@ noticechannelid = str(os.getenv("NOTICE_CHANNEL_ID"))
 
 num_val = 0
 num_notice = 0
-watering_time = []
+watering_time = set()
 
 # Botの大元となるオブジェクトを生成する
 bot = discord.Bot(
@@ -84,8 +84,11 @@ async def wateringregular(ctx: discord.ApplicationContext,
                             ):
     # addの場合
     if subcommand == "add":
-        watering_time.append(settime + " " + weekday)
-        await ctx.respond(f"水やりを予約しました\n{watering_time}")
+        if settime + " " + weekday in watering_time:
+            await ctx.respond(f"水やり予約が重複しています\n{watering_time}")
+        else:
+            watering_time.add(settime + " " + weekday)
+            await ctx.respond(f"水やり予約を追加しました\n{watering_time}")
     # deleteの場合
     elif subcommand == "delete":
         if settime == "all" and weekday == "all":
@@ -93,13 +96,14 @@ async def wateringregular(ctx: discord.ApplicationContext,
             await ctx.respond(f"水やり予約を全て削除しました")
         else:
             if settime + " " + weekday in watering_time:
-                watering_time.remove(settime + " " + weekday)
+                watering_time.discard(settime + " " + weekday)
                 await ctx.respond(f"水やり予約を削除しました\n{watering_time}")
             else:
                 await ctx.respond(f"水やり予約が見つかりませんでした")
     # listの場合
     elif subcommand == "list":
-        await ctx.respond(f"水やり予約リスト\n{watering_time}")
+        await ctx.respond(f"水やり予約一覧\n{watering_time}")
+        
 
 # 10秒ごとにchannelidにメッセージを送信
 # ToDo: 値の取得、表示方法を改善
@@ -165,7 +169,7 @@ async def get_notice():
                     print("Error: get_notice, noticeがリセットされました")
                     num_notice = len(data["data"])
 
-@tasks.loop(seconds=55)
+@tasks.loop(seconds=60)
 # 指定時間に水やり指示を送信
 async def post_flag():
     # @bot.event on_readyが呼ばれるまで待つ
