@@ -35,6 +35,8 @@ bot = discord.Bot(
         activity=discord.Game("💧"),  # "〇〇をプレイ中"の"〇〇"を設定,
 )
 
+wateringregular = bot.create_group(name="wateringregular", description="水やり予約関連")
+
 # 起動時に自動的に動くメソッド
 @bot.event
 async def on_ready():
@@ -76,34 +78,44 @@ async def watering(ctx: discord.ApplicationContext):
     # print(response.text)
     await ctx.respond(f"水やり指示を出しました")
 
-@bot.command(name="wateringregular", description="水やりを予約関連")
-async def wateringregular(ctx: discord.ApplicationContext,
-                            subcommand: discord.Option(str, "subcommandを入力してください", name="subcommand", choices=["add", "delete", "list"]),
-                            settime: discord.Option(str, "時間\"HH:MM\"を入力してください(省略可)", name="time", required=False, default="all"),
-                            weekday: discord.Option(str, "曜日を入力してください(省略可)", name="weekday", required=False, default="all", choices=["mon", "tue", "wed", "thu", "fri", "sat", "sun", "all"]),
-                            ):
-    # addの場合
-    if subcommand == "add":
-        if settime + " " + weekday in watering_time:
-            await ctx.respond(f"水やり予約が重複しています\n{watering_time}")
-        else:
-            watering_time.add(settime + " " + weekday)
-            await ctx.respond(f"水やり予約を追加しました\n{watering_time}")
-    # deleteの場合
-    elif subcommand == "delete":
-        if settime == "all" and weekday == "all":
-            watering_time.clear()
+@wateringregular.command(
+    name="add",
+    description="水やり予約を追加します"
+)
+async def add(ctx: discord.ApplicationContext,
+                settime: discord.Option(str, "時間\"HH:MM\"を入力してください", name="time"),
+                weekday: discord.Option(str, "曜日を入力してください", name="weekday", choices=["mon", "tue", "wed", "thu", "fri", "sat", "sun", "all"])):
+    if settime + " " + weekday in watering_time:
+        await ctx.respond(f"水やり予約が重複しています\n{watering_time}")
+    else:
+        watering_time.add(settime + " " + weekday)
+        await ctx.respond(f"水やり予約を追加しました\n{watering_time}")
+
+@wateringregular.command(
+    name="remove",
+    description="水やり予約を削除します"
+)
+async def remove(ctx: discord.ApplicationContext,
+                settime: discord.Option(str, "時間\"HH:MM\"を入力してください", name="time"),
+                weekday: discord.Option(str, "曜日を入力してください", name="weekday", choices=["mon", "tue", "wed", "thu", "fri", "sat", "sun", "all"])):
+    if settime + " " + weekday in watering_time:
+        watering_time.discard(settime + " " + weekday)
+        if watering_time == set():
             await ctx.respond(f"水やり予約を全て削除しました")
         else:
-            if settime + " " + weekday in watering_time:
-                watering_time.discard(settime + " " + weekday)
-                await ctx.respond(f"水やり予約を削除しました\n{watering_time}")
-            else:
-                await ctx.respond(f"水やり予約が見つかりませんでした")
-    # listの場合
-    elif subcommand == "list":
+            await ctx.respond(f"水やり予約を削除しました\n{watering_time}")
+    else:
+        await ctx.respond(f"水やり予約が見つかりませんでした")
+
+@wateringregular.command(
+    name="list",
+    description="水やり予約一覧を表示します"
+)
+async def list(ctx: discord.ApplicationContext):
+    if len(watering_time) == 0:
+        await ctx.respond(f"水やり予約はありません")
+    else:
         await ctx.respond(f"水やり予約一覧\n{watering_time}")
-        
 
 # 10秒ごとにchannelidにメッセージを送信
 # ToDo: 値の取得、表示方法を改善
