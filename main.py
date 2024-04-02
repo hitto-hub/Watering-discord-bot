@@ -72,8 +72,11 @@ async def on_ready():
         mes = "メッセージの取得に失敗しました。apiサーバーが起動しているか確認してください。"
         await Logchannel.send(makelog("Error", mes))
         exit()
+    get_val.start()
+    get_notice.start()
+    post_flag.start()
     # Logchannelにメッセージを送信
-    mes = "正常に起動しました\n"
+    mes = "正常に起動しました"
     await Logchannel.send(makelog("Info", mes))
 
 # pingコマンドを実装
@@ -148,7 +151,7 @@ async def list(ctx: discord.ApplicationContext):
         await ctx.respond(mes)
         await Logchannel.send(makelog("Info", mes))
     else:
-        mes = f"水やり予約一覧\n{watering_time}"
+        mes = f"水やり予約一覧{watering_time}"
         await ctx.respond(mes)
         await Logchannel.send(makelog("Info", mes))
 
@@ -157,6 +160,8 @@ async def list(ctx: discord.ApplicationContext):
 @tasks.loop(seconds=10)
 async def get_val():
     global num_val
+    global Valchannel
+    global Logchannel
     # 完全に起動するまで待つ <- 要改善
     await bot.wait_until_ready()
     # リクエストを送信
@@ -168,12 +173,11 @@ async def get_val():
         await Valchannel.send(makelog("Error", mes))
         await Logchannel.send(makelog("Error", mes))
         return
-    # channel指定 要改善
     for entry in data["data"]:
         # Message[id]が存在しない場合、Message[id]に格納
         if num_val < int(entry['id']):
             num_val = int(entry['id'])
-            mes = f"{entry['timestamp']} : {entry['val']}\n"
+            mes = f"{entry['timestamp']} : {entry['val']}"
             await Valchannel.send(mes)
     # print(num_val, len(data["data"]))
     if num_val > len(data["data"]):
@@ -187,6 +191,8 @@ async def get_val():
 @tasks.loop(seconds=10)
 async def get_notice():
     global num_notice
+    global Noticechannel
+    global Logchannel
     await bot.wait_until_ready()
     try:
         response = requests.get(url + "/notice")
@@ -215,6 +221,8 @@ async def get_notice():
 @tasks.loop(seconds=60)
 # 指定時間に水やり指示を送信
 async def post_flag():
+    global Valchannel
+    global Logchannel
     # @bot.event on_readyが呼ばれるまで待つ
     await bot.wait_until_ready()
     # 時間を取得
@@ -237,10 +245,6 @@ async def post_flag():
                 await Valchannel.send(f"水やり指示を出しました")
                 await Logchannel.send(makelog("Info", "水やり指示を出しました"))
                 return
-
-get_val.start()
-get_notice.start()
-post_flag.start()
 
 # Botを起動
 bot.run(token)
