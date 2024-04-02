@@ -7,19 +7,10 @@ import requests
 from discord.ext import commands,tasks
 import time
 import json
-# from requests.packages.urllib3.exceptions import InsecureRequestWarning
-
-# requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
 # アクセストークンを設定
 dotenv.load_dotenv()
 token = str(os.getenv("TOKEN"))
-# url
-# httpsではpost出来ない例あり
-# 関連)https://community.cloudflare.com/t/cloudflared-tunnel-receives-post-request-as-get/581874
-url = str(os.getenv("API_URL"))
-
-# channelid
+url = str(os.getenv("API_URL")) # httpsではpost出来ない例あり 関連)https://community.cloudflare.com/t/cloudflared-tunnel-receives-post-request-as-get/581874
 Valchannelid = str(os.getenv("VAL_CHANNEL_ID"))
 Noticechannelid = str(os.getenv("NOTICE_CHANNEL_ID"))
 Logchannelid = str(os.getenv("LOG_CHANNEL_ID"))
@@ -38,6 +29,7 @@ bot = discord.Bot(
         activity=discord.Game("💧"),  # "〇〇をプレイ中"の"〇〇"を設定,
 )
 
+# wateringregularグループを作成
 wateringregular = bot.create_group(name="wateringregular", description="水やり予約関連")
 
 def makelog(header, message):
@@ -51,7 +43,7 @@ async def on_ready():
     global Valchannel
     global Noticechannel
     global Logchannel
-    # channelの取得
+    # メッセージを送信するchannelを取得
     for channel in bot.get_all_channels():
         if int(channel.id) == int(Valchannelid):
             Valchannel = channel
@@ -72,10 +64,11 @@ async def on_ready():
         mes = "メッセージの取得に失敗しました。apiサーバーが起動しているか確認してください。"
         await Logchannel.send(makelog("Error", mes))
         exit()
+    # 定期実行を開始
     get_val.start()
     get_notice.start()
     post_flag.start()
-    # Logchannelにメッセージを送信
+    # 起動メッセージをLogchannelにメッセージを送信
     mes = "正常に起動しました"
     await Logchannel.send(makelog("Info", mes))
 
@@ -85,23 +78,25 @@ async def ping(ctx: discord.ApplicationContext):
     await ctx.respond(f"pong to {ctx.author.mention}")
 
 # /wateringコマンドを実装
+# このコマンドを実行すると、apiサーバーに水やり指示を送信する
 @bot.command(name="watering", description="水やりを開始します")
 async def watering(ctx: discord.ApplicationContext):
     data = {"flag": 1}
     flag_url = url + "/flag"
     try:
         response = requests.post(flag_url, json=data)
-    except:
+    except: # 通信エラー時
         mes = "水やり指示の送信に失敗しました, apiサーバーが起動しているか確認してください"
         await ctx.respond(f"Error: {mes}")
         await Logchannel.send(makelog("Error", mes))
         return
-    # print(response.status_code)
-    # print(response.text)
     mes = "水やり指示を出しました"
     await ctx.respond(f"{mes}")
     await Logchannel.send(makelog("Info", mes))
 
+# /wateringregularコマンドを実装
+# /wateringregular add time weekday
+# time, weekdayを指定して水やり予約を追加できる
 @wateringregular.command(
     name="add",
     description="水やり予約を追加します"
@@ -119,6 +114,8 @@ async def add(ctx: discord.ApplicationContext,
         await ctx.respond(mes)
         await Logchannel.send(makelog("Info", mes))
 
+# /wateringregular remove time weekday
+# time, weekdayを指定して水やり予約を削除できる
 @wateringregular.command(
     name="remove",
     description="水やり予約を削除します"
@@ -141,6 +138,8 @@ async def remove(ctx: discord.ApplicationContext,
         await ctx.respond(mes)
         await Logchannel.send(makelog("Error", mes))
 
+# /wateringregular list
+# 水やり予約一覧を表示
 @wateringregular.command(
     name="list",
     description="水やり予約一覧を表示します"
@@ -168,7 +167,7 @@ async def get_val():
     try:
         response = requests.get(url + "/val")
         data = json.loads(response.text)
-    except:
+    except: # 通信エラー時
         mes = "水分量のメッセージの取得に失敗しました. apiサーバーが起動しているか確認してください."
         await Logchannel.send(makelog("Error", mes))
         return
@@ -196,7 +195,7 @@ async def get_notice():
     try:
         response = requests.get(url + "/notice")
         data = json.loads(response.text)
-    except:
+    except: # 通信エラー時
         mes = "水やり通知のメッセージの取得に失敗しました. apiサーバーが起動しているか確認してください."
         await Logchannel.send(makelog("Error", mes))
         return
@@ -206,10 +205,13 @@ async def get_notice():
         num_notice += 1
         try:
             if data["data"][num_notice - 1]["notice"] == 1:
+                await Logchannel.send(makelog("Info", f"{data['data'][num_notice - 1]['timestamp']} : 水やり開始"))
                 await Noticechannel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やり開始```")
             elif data["data"][num_notice - 1]["notice"] == 0:
+                await Logchannel.send(makelog("Info", f"{data['data'][num_notice - 1]['timestamp']} : 水やり終了"))
                 await Noticechannel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やり終了```")
             else:
+                await Logchannel.send(makelog("Info", f"{data['data'][num_notice - 1]['timestamp']} : 水やりtimeout"))
                 await Noticechannel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やりtimeout```")
         except:
             mes = "get_notice, noticeがリセットされました.データベースがリセットされました."
@@ -238,11 +240,13 @@ async def post_flag():
                 try:
                     response = requests.post(flag_url, json=data)
                 except:
-                    await Valchannel.send(f"Error: 水やり指示の送信に失敗しました")
-                    await Logchannel.send(makelog("Error", "水やり指示の送信に失敗しました"))
+                    mes = "予約された水やり指示の送信に失敗しました"
+                    await Valchannel.send(f"Error: {mes}")
+                    await Logchannel.send(makelog("Error", mes))
                     return
-                await Valchannel.send(f"水やり指示を出しました")
-                await Logchannel.send(makelog("Info", "水やり指示を出しました"))
+                mes = "予約された水やり指示を出しました"
+                await Valchannel.send(mes)
+                await Logchannel.send(makelog("Info", mes))
                 return
 
 # Botを起動
