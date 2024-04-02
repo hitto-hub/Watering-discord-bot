@@ -162,15 +162,14 @@ async def get_val():
     global num_val
     global Valchannel
     global Logchannel
-    # 完全に起動するまで待つ <- 要改善
+    # 起動するまで待つ
     await bot.wait_until_ready()
     # リクエストを送信
     try:
         response = requests.get(url + "/val")
         data = json.loads(response.text)
     except:
-        mes = "メッセージの取得に失敗しました. apiサーバーが起動しているか確認してください.val"
-        await Valchannel.send(makelog("Error", mes))
+        mes = "水分量のメッセージの取得に失敗しました. apiサーバーが起動しているか確認してください."
         await Logchannel.send(makelog("Error", mes))
         return
     for entry in data["data"]:
@@ -182,7 +181,7 @@ async def get_val():
     # print(num_val, len(data["data"]))
     if num_val > len(data["data"]):
         num_val = int(json.loads(requests.get(url + "/val").text)["num_results"])
-        mes = "get_val, valがリセットされました"
+        mes = "get_val, valがリセットされました.データベースがリセットされました."
         print(f"Error: {mes}")
         await Logchannel.send(makelog("Error", mes))
         # print(num_val, len(data["data"]))
@@ -198,8 +197,7 @@ async def get_notice():
         response = requests.get(url + "/notice")
         data = json.loads(response.text)
     except:
-        mes = "メッセージの取得に失敗しました. apiサーバーが起動しているか確認してください.notice"
-        await Noticechannel.send(makelog("Error", mes))
+        mes = "水やり通知のメッセージの取得に失敗しました. apiサーバーが起動しているか確認してください."
         await Logchannel.send(makelog("Error", mes))
         return
     if num_notice == len(data["data"]):
@@ -214,7 +212,8 @@ async def get_notice():
             else:
                 await Noticechannel.send(f"```{data['data'][num_notice - 1]['timestamp']} : 水やりtimeout```")
         except:
-            mes = "get_notice, noticeがリセットされました"
+            mes = "get_notice, noticeがリセットされました.データベースがリセットされました."
+            print(f"Error: {mes}")
             await Logchannel.send(makelog("Error", mes))
             num_notice = len(data["data"])
 
